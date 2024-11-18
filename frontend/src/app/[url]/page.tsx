@@ -1,5 +1,6 @@
 import { Url } from "@/lib/types";
 import ImageDecryptor from "./components/image-decryptor";
+import { Toaster } from "sonner";
 
 
 async function getUrlData(url: string): Promise<Url> {
@@ -13,9 +14,12 @@ async function getUrlData(url: string): Promise<Url> {
 }
 
 export default async function UrlPage({ params }: { params: { url: string } }) {
-    const { url } = params;
+    const { url } = await params;
     const data = await getUrlData(url);
     return(
+        <>
+        <Toaster />
         <ImageDecryptor url={data.url} image={data.image} />
+        </>
     )
 }

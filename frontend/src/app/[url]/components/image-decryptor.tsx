@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,9 +15,8 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
   const [decryptionKey, setDecryptionKey] = useState('')
   const [decryptedImage, setDecryptedImage] = useState('')
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
-    console.log(image)
   const handleDecrypt = () => {
-    const response = fetch(`http://localhost:3001/url/${url}/decrypted-image?key=${decryptionKey}`);
+    const response = fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/url/${url}/decrypted-image?key=${decryptionKey}`);
         response.then(async (res) => {
             const data = await res.json();
             if(!data.success)
@@ -26,19 +25,24 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
                 return;
             }
             setDecryptedImage(data.image)
+            setIsDecryptDialogOpen(false)
+            setDecryptionKey('')
         });
-    setIsDecryptDialogOpen(false)
-    setDecryptionKey('')
   }
-
+  const resetInputState = () => {
+    setDecryptionKey('')
+    setSelectedImage(null)
+  }
+  useEffect(() => {
+    resetInputState()
+  }, [isUploadDialogOpen, isDecryptDialogOpen])
   const handleUpload = async() => {
     if (selectedImage) {
         // convert image to base64
         const reader = new FileReader();
         reader.onload = async function(e) {
             const base64Image = e.target?.result as string;
-            console.log(base64Image)
-            const response = await fetch(`http://localhost:3001/url/${url}/image`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/url/${url}/image`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -54,11 +58,13 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
                 toast(data.message)
                 return;
             }
+            toast(data.message)
+            setDecryptedImage(base64Image)
+            setIsUploadDialogOpen(false)
+            setSelectedImage(null)
         }
         reader.readAsDataURL(selectedImage);
     }
-    setIsUploadDialogOpen(false)
-    setSelectedImage(null)
   }
 
   return (
@@ -71,11 +77,11 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
             alt="Placeholder"
             layout="fill"
             objectFit="cover"
-            className="rounded-lg" /> : <Icon text={image ? "Decrypt Image" : "No Image"} />}
+            className="rounded-lg" /> : <Icon  text={image ? "Decrypt Image" : "No Image"} />}
           
         </div>
         <div className="flex justify-between">
-          <Button disabled={!image} onClick={() => setIsDecryptDialogOpen(true)}>Decrypt</Button>
+          <Button disabled={!image || !!decryptedImage} onClick={() => setIsDecryptDialogOpen(true)}>Decrypt</Button>
           <Button onClick={() => setIsUploadDialogOpen(true)}>Upload</Button>
         </div>
       </div>
@@ -95,7 +101,7 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
             />
           </div>
           <DialogFooter>
-            <Button onClick={handleDecrypt}>Decrypt</Button>
+            <Button disabled={!!decryptedImage} onClick={handleDecrypt}>Decrypt</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

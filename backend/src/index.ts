@@ -28,7 +28,6 @@ app.post("/url/:url", async (req: Request, res: Response) => {
       url: true,
     },
   });
-  console.log(existingUrl)
   if (existingUrl) {
     return res.json(existingUrl);
   }
