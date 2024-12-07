@@ -8,6 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import Icon from './Icon'
 import { toast } from 'sonner'
+import { CipherType } from '@/lib/types'
+import { Select
+, SelectTrigger, SelectValue, SelectContent, SelectItem
+ } from '@/components/ui/select'
+import { validateKey } from '@/lib/utils'
 
 export default function ImageDecryptor({image, url}: {image: string, url: string}) {
   const [isDecryptDialogOpen, setIsDecryptDialogOpen] = useState(false)
@@ -15,6 +20,7 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
   const [decryptionKey, setDecryptionKey] = useState('')
   const [decryptedImage, setDecryptedImage] = useState('')
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [cipherType, setCipherType] = useState<CipherType>(CipherType.Caesar);
   const handleDecrypt = () => {
     const response = fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/url/${url}/decrypted-image?key=${decryptionKey}`);
         response.then(async (res) => {
@@ -37,6 +43,10 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
     resetInputState()
   }, [isUploadDialogOpen, isDecryptDialogOpen])
   const handleUpload = async() => {
+      if(!validateKey(cipherType, decryptionKey)) {
+      toast("key must be a number between 1 and 65536")
+      return;
+    }
     if (selectedImage) {
         // convert image to base64
         const reader = new FileReader();
@@ -50,6 +60,7 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
                 body: JSON.stringify({
                     image: base64Image,
                     key: decryptionKey,
+                    type: cipherType,
                 }),
             });
             const data = await response.json();
@@ -111,7 +122,24 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
           <DialogHeader>
             <DialogTitle>Upload Image</DialogTitle>
           </DialogHeader>
-          <div className="pt-4 pb-2">
+          <div className="pt-4">
+          <Label htmlFor="cipher">Select Cipher</Label>
+          <Select value={cipherType}
+          onValueChange={(v) => setCipherType(v as CipherType)}
+           name='cipher'>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="cipher" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(CipherType).map((type) => (
+                <SelectItem value={type} key={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          </div>
+          <div className="pb-2">
             <Label htmlFor="image-upload">Select Image</Label>
             <Input
               id="image-upload"
@@ -130,7 +158,7 @@ export default function ImageDecryptor({image, url}: {image: string, url: string
                 />
             </div>
           <DialogFooter>
-            <Button onClick={handleUpload} disabled={!selectedImage}>Upload</Button>
+            <Button onClick={handleUpload} disabled={!selectedImage || !cipherType || !decryptionKey}>Upload</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

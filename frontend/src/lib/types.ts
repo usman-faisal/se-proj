@@ -3,3 +3,9 @@ export interface Url {
     url: string
     image: string;
 }
+
+export enum CipherType {
+    Caesar = "Caesar",
+    Multiplicative = "Multiplicative",
+    Vigenere = "Vigenere"
+}

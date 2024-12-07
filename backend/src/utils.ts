@@ -1,33 +1,28 @@
-export function encryptAndBlurImage(base64Image: string, key: string) {
-  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
-  
-  const repeatingKey = key.repeat(Math.ceil(base64Data.length / key.length))
-  .slice(0, base64Data.length);
-  
-  const encrypted = base64Data
-    .split('')
-    .map((char, i) => {
-      const shift = repeatingKey.charCodeAt(i);
-      return String.fromCharCode((char.charCodeAt(0) + shift) % 65536);
-    })
-    .join('');
+import {decryptImage as caesarDecryptImage,  encryptImage as caesarEncryptImage, crackCaesarCipher} from "./ciphers/caesar";
+import {crackVigenereCipher, decryptImage as vigenereDecryptImage,  encryptImage as vigenereEncryptImage} from "./ciphers/vigenere";
+import {decryptImage as multiplicativeDecryptImage, encryptImage as multiplicativeEncryptImage, crackMultiplicativeCipher} from "./ciphers/multiplicative";
+import { Response } from "express";
+import { CipherType } from "./types";
+import { Cipher } from "@prisma/client";
 
-  return encrypted
+interface crackOutput {
+    logs: string [];
+    image: string;
 }
-
-export function decryptImage(encryptedImage: string, key: string) {
-  const repeatingKey = key.repeat(Math.ceil(encryptedImage.length / key.length))
-  .slice(0, encryptedImage.length);
-  
-  const decrypted = encryptedImage
-    .split('')
-    .map((char, i) => {
-      const shift = repeatingKey.charCodeAt(i);
-      return String.fromCharCode((char.charCodeAt(0) - shift + 65536) % 65536);
-    })
-    .join('');
-
-    // add the base64 prefix
-    return `data:image/png;base64,${decrypted}`;
-
+interface ChooseCipherObj {
+    encryptImage: (base64Image: string, key: string) => string
+    decryptImage: (encryptedImage: string, key: string) => string
+    crackCipher: (encryptedImage: string) => crackOutput;
+}
+export const chooseCipher = (cipher: Cipher = CipherType.Caesar): ChooseCipherObj => {
+    switch (cipher) {
+        case "Caesar":
+            return {encryptImage: caesarEncryptImage, decryptImage: caesarDecryptImage, crackCipher: crackCaesarCipher};
+        case "Vigenere":
+            return {encryptImage: vigenereEncryptImage, decryptImage: vigenereDecryptImage, crackCipher: crackVigenereCipher};
+        case "Multiplicative":
+            return {encryptImage: multiplicativeEncryptImage, decryptImage: multiplicativeDecryptImage, crackCipher: crackMultiplicativeCipher};
+        default:
+            throw new Error("Invalid cipher");
+    }
 }

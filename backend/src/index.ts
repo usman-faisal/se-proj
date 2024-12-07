@@ -1,7 +1,8 @@
 import express, { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-import { decryptImage, encryptAndBlurImage } from "./utils";
+import { Cipher, PrismaClient } from "@prisma/client";
+import {chooseCipher} from "./utils";
 import cors from "cors";
+import { CipherType } from "./types";
 
 const prisma = new PrismaClient();
 const app = express();
@@ -48,7 +49,7 @@ app.post("/url/:url", async (req: Request, res: Response) => {
 // Encrypt and save the image with the given URL
 app.post("/url/:url/image", async (req: Request, res: Response) => {
   const { url } = req.params;
-  const { image, key } = req.body;
+  const { image, key, type } = req.body;
   if (!image || !key) {
     return res.json({
       success: false,
@@ -67,14 +68,13 @@ app.post("/url/:url/image", async (req: Request, res: Response) => {
       message: "URL does not exist",
     });
   }
-
-  const encryptedImage = encryptAndBlurImage(image, key);
-  
+  const encryptedImage = chooseCipher(type ?? CipherType.Caesar).encryptImage(image, key);
   await prisma.url.update({
     where: { url },
     data: {
       image: encryptedImage,
       key,
+      cipher: type
     },
   });
 
@@ -96,6 +96,7 @@ app.get("/url/:url/decrypted-image", async (req: Request, res: Response) => {
     select: {
       image: true,
       key: true,
+      cipher: true
     },
   });
   if (!existingUrl) {
@@ -116,7 +117,7 @@ app.get("/url/:url/decrypted-image", async (req: Request, res: Response) => {
       message: "Image or key is missing",
     });
   }
-  const decryptedImage = decryptImage(
+  const decryptedImage = chooseCipher(existingUrl.cipher ?? undefined).decryptImage(
     existingUrl.image,
     existingUrl.key,
   );
@@ -125,6 +126,62 @@ app.get("/url/:url/decrypted-image", async (req: Request, res: Response) => {
     image: decryptedImage,
     success: true,
   });
+});
+
+app.get("/url/:url/crack", async (req: Request, res: Response) => {
+  const { url } = req.params;
+
+  const existingUrl = await prisma.url.findUnique({
+    where: {
+      url,
+    },
+    select: {
+      image: true,
+      cipher: true
+    },
+  });
+  if (!existingUrl) {
+    return res.json({
+      success: false,
+      message: "URL does not exist",
+    });
+  }
+  if (!existingUrl.image) {
+    return res.json({
+      success: false,
+      message: "Image or key is missing",
+    });
+  }
+  // stream
+  
+  const crackImage = chooseCipher(existingUrl.cipher ?? undefined).crackCipher(
+    existingUrl.image,
+  );
+  if(!crackImage.image){
+    return res.json({
+      success: false,
+      message: "image could not be cracked",
+      logs: crackImage.logs
+    })
+  }
+  return res.json({
+    success: true,
+    data: {
+      logs: crackImage.logs,
+      image: crackImage.image
+    }
+  })
+  // if(!decryptedImage) {
+  //   return res.json({
+  //     message: "Failed to decrypt image",
+  //     success: false,
+  //   });
+  // }
+  
+  // return res.json({
+  //   image: decryptedImage,
+  //   success: true,
+  // });
 });
 
 app.delete("/url/:url", async (req: Request, res: Response) => {

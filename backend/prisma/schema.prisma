@@ -13,10 +13,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Cipher {
+  Vigenere
+  Caesar
+  Multiplicative
+}
+
 model url {
   id    Int     @id @default(autoincrement())
   url   String  @unique
   image String?
   key   String?
-  iv    String?
+  cipher Cipher?
 }
