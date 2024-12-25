@@ -45,6 +45,6 @@ export const crackCaesarCipher = (encryptedImage: string) => {
         }
     }
 
-    logs.push("Failed to crack the multiplicative cipher")
+    logs.push("Failed to crack the caesar cipher")
     return {logs, image: ""}
 }
