@@ -33,19 +33,28 @@ export const encryptImage = (base64Image: string, key: string) => {
 }
 
 export const decryptImage = (encryptedImage: string, key: string) => {
-    const keyNum = parseInt(key);
-    if (!isCoprime(keyNum, 65536)) {
-        throw new Error("key must be coprime with 65536");
+    try {
+        const keyNum = parseInt(key);
+        if (!isCoprime(keyNum, 65536)) {
+            throw new Error("key must be coprime with 65536");
+        }
+
+        const inverse = modInverse(keyNum, 65536);
+        const decrypted = encryptedImage
+            .split('')
+            .map((char) => {
+                return String.fromCharCode((char.charCodeAt(0) * inverse) % 65536);
+            })
+            .join('');
+        if(!atob(decrypted))
+        {
+            throw new Error()
+        }
+        return `data:image/png;base64,${decrypted}`;
+    }catch(e)
+    {
+        throw new Error("Invalid key")
     }
-    
-    const inverse = modInverse(keyNum, 65536);
-    const decrypted = encryptedImage
-        .split('')
-        .map((char) => {
-            return String.fromCharCode((char.charCodeAt(0) * inverse) % 65536);
-        })
-        .join('');
-    return `data:image/png;base64,${decrypted}`;
 }
 
 export const crackMultiplicativeCipher = (encryptedImage: string) => {

@@ -10,6 +10,9 @@ export const validateKey = (cipherType: CipherType, key: string) => {
   if (cipherType === CipherType.Vigenere) {
     return true;
   }
-  const keyNum = parseInt(key);
-  return keyNum > 0 && keyNum <= 65536;
+  const gcd = (x: number, y: number): number => {
+    return y === 0 ? x : gcd(y, x % y);
+  };
+  const keyNum = Number(key)
+  return gcd(keyNum, 65536) === 1;
 }

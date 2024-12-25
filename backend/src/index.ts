@@ -73,7 +73,6 @@ app.post("/url/:url/image", async (req: Request, res: Response) => {
     where: { url },
     data: {
       image: encryptedImage,
-      key,
       cipher: type
     },
   });
@@ -95,7 +94,6 @@ app.get("/url/:url/decrypted-image", async (req: Request, res: Response) => {
     },
     select: {
       image: true,
-      key: true,
       cipher: true
     },
   });
@@ -105,27 +103,28 @@ app.get("/url/:url/decrypted-image", async (req: Request, res: Response) => {
       message: "URL does not exist",
     });
   }
-  if (key !== existingUrl.key) {
-    return res.json({
-      success: false,
-      message: "Invalid key",
-    });
-  }
-  if (!existingUrl.image || !existingUrl.key) {
+  if (!existingUrl.image || !key || typeof key !== 'string') {
     return res.json({
       success: false,
       message: "Image or key is missing",
     });
   }
-  const decryptedImage = chooseCipher(existingUrl.cipher ?? undefined).decryptImage(
-    existingUrl.image,
-    existingUrl.key,
-  );
+  try {
+    const decryptedImage = chooseCipher(existingUrl.cipher ?? undefined).decryptImage(
+        existingUrl.image,
+        key,
+    );
+    return res.json({
+      image: decryptedImage,
+      success: true,
+    });
+  }catch (e) {
+    return res.json({
+      message: "invalid key",
+      success: false,
+    });
+  }
 
-  return res.json({
-    image: decryptedImage,
-    success: true,
-  });
 });
 
 app.get("/url/:url/crack", async (req: Request, res: Response) => {

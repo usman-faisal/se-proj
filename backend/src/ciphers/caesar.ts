@@ -15,14 +15,19 @@ export const encryptImage = (base64Image: string, key: string) => {
 
 
 export const decryptImage = (encryptedImage: string, key: string) => {
-    const keyNum = parseInt(key);
-    const decrypted = encryptedImage
-        .split('')
-        .map((char) => {
-        return String.fromCharCode((char.charCodeAt(0) - keyNum + 65536) % 65536);
-        })
-        .join('');
-    return `data:image/png;base64,${decrypted}`;
+    try{
+        const keyNum = parseInt(key);
+        const decrypted = encryptedImage
+            .split('')
+            .map((char) => {
+                return String.fromCharCode((char.charCodeAt(0) - keyNum + 65536) % 65536);
+            })
+            .join('');
+        return `data:image/png;base64,${decrypted}`;
+    }catch(e)
+    {
+        throw new Error("invalid key")
+    }
 }
 
 export const crackCaesarCipher = (encryptedImage: string) => {

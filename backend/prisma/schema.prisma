@@ -23,6 +23,5 @@ model url {
   id    Int     @id @default(autoincrement())
   url   String  @unique
   image String?
-  key   String?
   cipher Cipher?
 }

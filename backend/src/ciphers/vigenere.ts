@@ -18,18 +18,26 @@ export function encryptImage(base64Image: string, key: string) {
   }
 
 export function decryptImage(encryptedImage: string, key: string) {
-    const repeatingKey = key.repeat(Math.ceil(encryptedImage.length / key.length))
-    .slice(0, encryptedImage.length);
+    try{
+        const repeatingKey = key.repeat(Math.ceil(encryptedImage.length / key.length))
+        .slice(0, encryptedImage.length);
 
-    const decrypted = encryptedImage
-        .split('')
-        .map((char, i) => {
-        const shift = repeatingKey.charCodeAt(i);
-        return String.fromCharCode((char.charCodeAt(0) - shift + 65536) % 65536);
-        })
-        .join('');
-
+        const decrypted = encryptedImage
+            .split('')
+            .map((char, i) => {
+            const shift = repeatingKey.charCodeAt(i);
+            return String.fromCharCode((char.charCodeAt(0) - shift + 65536) % 65536);
+            })
+            .join('');
+        if(!atob(decrypted))
+        {
+           throw new Error()
+        }
         return `data:image/png;base64,${decrypted}`;
+    }catch (e)
+    {
+        throw new Error("Invalid key")
+    }
 }
 
 export function crackVigenereCipher(encryptedImage: string) {
@@ -39,7 +47,7 @@ export function crackVigenereCipher(encryptedImage: string) {
     const base64Data = encryptedImage.replace(/^data:image\/\w+;base64,/, "");
     const logs = [];
     try {
-        
+
         const passwords = fs.readFileSync(path, 'utf8').split('\n');
         for (const password of passwords) {
             const key = password.trim();
